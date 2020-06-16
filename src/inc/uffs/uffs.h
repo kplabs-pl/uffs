@@ -80,6 +80,7 @@ extern "C"{
 #define UEISDIR 13		/** Is a directory */    
 #define UERANGE 14  /** Read data out of page range */
 
+#define UEUNINITIALIZED	99	/** uninitialized uffs device */
 #define UEUNKNOWN_ERR	100	/** unknown error */
 
 

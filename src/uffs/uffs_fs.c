@@ -117,7 +117,10 @@ int uffs_GetFreeObjectHandlers(void)
 {
 	int count = 0;
 
-	uffs_GlobalFsLockLock();
+	if(uffs_GlobalFsLockLock() == UEUNINITIALIZED)
+	{
+		return -1;	
+	}
 	count = uffs_PoolGetFreeCount(&_object_pool);
 	uffs_GlobalFsLockUnlock();
 
