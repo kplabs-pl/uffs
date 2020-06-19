@@ -66,9 +66,9 @@ void uffs_ReleaseGlobalFsLock(void)
 	uffs_SemDelete(&_global_lock);
 }
 
-void uffs_GlobalFsLockLock(void)
+int uffs_GlobalFsLockLock(void)
 {
-	uffs_SemWait(_global_lock);
+	return uffs_SemWait(_global_lock);
 }
 
 void uffs_GlobalFsLockUnlock(void)
@@ -80,7 +80,7 @@ void uffs_GlobalFsLockUnlock(void)
 
 void uffs_InitGlobalFsLock(void) {}
 void uffs_ReleaseGlobalFsLock(void) {}
-void uffs_GlobalFsLockLock(void) {}
+int uffs_GlobalFsLockLock(void) {}
 void uffs_GlobalFsLockUnlock(void) {}
 
 #endif
@@ -221,7 +221,10 @@ URET uffs_FormatDeviceEx(uffs_Device *dev, UBOOL force, UBOOL lock)
 		return U_FAIL;
 
 	if (lock) {
-		uffs_GlobalFsLockLock();
+		if(uffs_GlobalFsLockLock() == UEUNINITIALIZED)
+		{
+			return U_FAIL;	
+		}
 	}
 
 	ret = uffs_BufFlushAll(dev);

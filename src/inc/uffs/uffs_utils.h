@@ -47,7 +47,7 @@ int uffs_GetUFFSVersion(struct uffs_DeviceSt *dev);
 
 void uffs_InitGlobalFsLock(void);
 void uffs_ReleaseGlobalFsLock(void);
-void uffs_GlobalFsLockLock(void);
+int uffs_GlobalFsLockLock(void);
 void uffs_GlobalFsLockUnlock(void);
 
 URET uffs_FormatDevice(uffs_Device *dev, UBOOL force);

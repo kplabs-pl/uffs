@@ -76,7 +76,10 @@ struct uffs_dirSt {
  */
 #define CHK_OBJ_LOCK(fd, obj, ret)	\
 	do { \
-		uffs_GlobalFsLockLock(); \
+		if (uffs_GlobalFsLockLock() == UEUNINITIALIZED) { \
+			uffs_set_error(-UEUNINITIALIZED); \
+			return (ret); \
+		} \
 		fd -= FD_OFFSET; \
 		if ( (fd >> FD_SIGNATURE_SHIFT) != _fd_signature ) { \
 			uffs_set_error(-UEBADF); \
@@ -104,7 +107,10 @@ struct uffs_dirSt {
  */
 #define CHK_DIR_LOCK(dirp, ret)	\
 	do { \
-		uffs_GlobalFsLockLock(); \
+		if (uffs_GlobalFsLockLock() == UEUNINITIALIZED) { \
+			uffs_set_error(-UEUNINITIALIZED); \
+			return (ret); \
+		} \
 		if ((dirp) == NULL || \
 				uffs_PoolVerify(&_dir_pool, (dirp)) == U_FALSE || \
 				uffs_PoolCheckFreeList(&_dir_pool, (dirp)) == U_TRUE) { \
@@ -122,7 +128,10 @@ struct uffs_dirSt {
  */
 #define CHK_DIR_VOID_LOCK(dirp)	\
 	do { \
-		uffs_GlobalFsLockLock(); \
+		if (uffs_GlobalFsLockLock() == UEUNINITIALIZED) { \
+			uffs_set_error(-UEUNINITIALIZED); \
+			return; \
+		} \
 		if ((dirp) == NULL || \
 				uffs_PoolVerify(&_dir_pool, (dirp)) == U_FALSE || \
 				uffs_PoolCheckFreeList(&_dir_pool, (dirp)) == U_TRUE) { \
@@ -238,7 +247,10 @@ int uffs_open(const char *name, int oflag, ...)
 	uffs_Object *obj;
 	int ret = 0;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		uffs_set_error(-UEUNINITIALIZED);
+		return -1;
+	}
 
 	obj = uffs_GetObject();
 	if (obj == NULL) {
@@ -266,7 +278,10 @@ int uffs_openbyserial(int serial,  uffs_Device* dev, int oflag)
 	uffs_Object *obj;
 	int ret = 0;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		uffs_set_error(-UEUNINITIALIZED);
+		return -1;
+	}
 
 	obj = uffs_GetObject();
 	if (obj == NULL) {
@@ -294,7 +309,10 @@ int uffs_openindir(const char *name, uffs_DIR* dir, int oflag)
 	uffs_Object *obj;
 	int ret = 0;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		uffs_set_error(-UEUNINITIALIZED);
+		return -1;
+	}
 
 	obj = uffs_GetObject();
 	if (obj == NULL) {
@@ -440,7 +458,10 @@ int uffs_rename(const char *old_name, const char *new_name)
 	int err = 0;
 	int ret = 0;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		uffs_set_error(-UEUNINITIALIZED);
+		return -1;
+	}
 	ret = (uffs_RenameObject(old_name, new_name, &err) == U_SUCC) ? 0 : -1;
 	uffs_set_error(-err);
 	uffs_GlobalFsLockUnlock();
@@ -455,6 +476,10 @@ int uffs_remove(const char *name)
 	struct uffs_stat st;
 
 	if (uffs_stat(name, &st) < 0) {
+		if (-uffs_get_error() == UEUNINITIALIZED) {
+			return -1;
+		}
+
 		err = UENOENT;
 		ret = -1;
 	}
@@ -463,7 +488,10 @@ int uffs_remove(const char *name)
 		ret = -1;
 	}
 	else {
-		uffs_GlobalFsLockLock();
+		if (uffs_GlobalFsLockLock() == UEUNINITIALIZED) {
+			uffs_set_error(-UEUNINITIALIZED);
+			return -1;
+		}
 		if (uffs_DeleteObject(name, &err) == U_SUCC) {
 			ret = 0;
 		}
@@ -595,7 +623,10 @@ int uffs_stat(const char *name, struct uffs_stat *buf)
 	int err = 0;
 	URET result;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		uffs_set_error(-UEUNINITIALIZED);
+		return -1;
+	}
 
 	obj = uffs_GetObject();
 	if (obj) {
@@ -666,7 +697,10 @@ uffs_DIR * uffs_opendir(const char *path)
 	uffs_DIR *ret = NULL;
 	uffs_DIR *dirp;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		uffs_set_error(-UEUNINITIALIZED);
+		return NULL;
+	}
 
 	dirp = GetDirEntry();
 
@@ -742,7 +776,10 @@ int uffs_mkdir(const char *name, ...)
 	int ret = 0;
 	int err = 0;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED) {
+		uffs_set_error(-UEUNINITIALIZED);
+		return -1;
+	}
 
 	obj = uffs_GetObject();
 	if (obj) {
@@ -782,7 +819,10 @@ int uffs_rmdir(const char *name)
 		ret = -1;
 	}
 	else {
-		uffs_GlobalFsLockLock();
+		if (uffs_GlobalFsLockLock() == UEUNINITIALIZED) {
+			uffs_set_error(-UEUNINITIALIZED);
+			return -1;
+		}
 		if (uffs_DeleteObject(name, &err) == U_SUCC) {
 			ret = 0;
 		}
@@ -805,7 +845,9 @@ int uffs_format(const char *mount_point)
 	uffs_Device *dev = NULL;
 	URET ret = U_FAIL;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		return ret;
+	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
 	if (dev) {
 		ret = uffs_FormatDeviceEx(dev, U_TRUE, U_FALSE);
@@ -821,7 +863,9 @@ long uffs_space_total(const char *mount_point)
 	uffs_Device *dev = NULL;
 	long ret = -1L;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		return ret;
+	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
 	if (dev) {
 		ret = (long) uffs_GetDeviceTotal(dev);
@@ -837,7 +881,9 @@ long uffs_space_used(const char *mount_point)
 	uffs_Device *dev = NULL;
 	long ret = -1L;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		return ret;
+	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
 	if (dev) {
 		ret = (long) uffs_GetDeviceUsed(dev);
@@ -853,7 +899,9 @@ long uffs_space_free(const char *mount_point)
 	uffs_Device *dev = NULL;
 	long ret = -1L;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		return ret;
+	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
 	if (dev) {
 		ret = (long) uffs_GetDeviceFree(dev);
@@ -869,7 +917,9 @@ void uffs_flush_all(const char *mount_point)
 {
 	uffs_Device *dev = NULL;
 
-	uffs_GlobalFsLockLock();
+	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
+		return;
+	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
 	if (dev) {
 		uffs_BufFlushAll(dev);
