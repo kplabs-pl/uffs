@@ -858,58 +858,64 @@ int uffs_format(const char *mount_point)
 	return ret == U_SUCC ? 0 : -1;
 }
 
-long uffs_space_total(const char *mount_point)
+int uffs_space_total(const char *mount_point, unsigned long *result)
 {
 	uffs_Device *dev = NULL;
-	long ret = -1L;
 
 	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
-		return ret;
+		return -1;
 	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
-	if (dev) {
-		ret = (long) uffs_GetDeviceTotal(dev);
-		uffs_PutDevice(dev);
+	if (!dev) {
+		uffs_GlobalFsLockUnlock();
+		return -1;
 	}
+
+	*result = uffs_GetDeviceTotal(dev);
+	uffs_PutDevice(dev);
 	uffs_GlobalFsLockUnlock();
 
-	return ret;
+	return 0;
 }
 
-long uffs_space_used(const char *mount_point)
+int uffs_space_used(const char *mount_point, unsigned long *result)
 {
 	uffs_Device *dev = NULL;
-	long ret = -1L;
 
 	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
-		return ret;
+		return -1;
 	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
-	if (dev) {
-		ret = (long) uffs_GetDeviceUsed(dev);
-		uffs_PutDevice(dev);
+	if (!dev) {
+		uffs_GlobalFsLockUnlock();
+		return -1;
 	}
+
+	*result = uffs_GetDeviceUsed(dev);
+	uffs_PutDevice(dev);
 	uffs_GlobalFsLockUnlock();
 
-	return ret;
+	return 0;
 }
 
-long uffs_space_free(const char *mount_point)
+int uffs_space_free(const char *mount_point, unsigned long *result)
 {
 	uffs_Device *dev = NULL;
-	long ret = -1L;
 
 	if (uffs_GlobalFsLockLock() == UEUNINITIALIZED)	{
-		return ret;
+		return -1;
 	}
 	dev = uffs_GetDeviceFromMountPoint(mount_point);
-	if (dev) {
-		ret = (long) uffs_GetDeviceFree(dev);
-		uffs_PutDevice(dev);
+	if (!dev) {
+		uffs_GlobalFsLockUnlock();
+		return -1;
 	}
+
+	*result = uffs_GetDeviceFree(dev);
+	uffs_PutDevice(dev);
 	uffs_GlobalFsLockUnlock();
 
-	return ret;
+	return 0;
 }
 
 

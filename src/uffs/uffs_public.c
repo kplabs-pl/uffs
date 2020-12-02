@@ -404,7 +404,7 @@ UBOOL uffs_IsPageErased(uffs_Device *dev, uffs_BlockInfo *bc, u16 page)
 /** 
  * get partition used (bytes)
  */
-int uffs_GetDeviceUsed(uffs_Device *dev)
+unsigned long uffs_GetDeviceUsed(uffs_Device *dev)
 {
 	return (dev->par.end - dev->par.start + 1 -
 			dev->tree.bad_count	- dev->tree.erased_count
@@ -416,7 +416,7 @@ int uffs_GetDeviceUsed(uffs_Device *dev)
 /** 
  * get partition free (bytes)
  */
-int uffs_GetDeviceFree(uffs_Device *dev)
+unsigned long uffs_GetDeviceFree(uffs_Device *dev)
 {
 	return dev->tree.erased_count *
 			dev->attr->page_data_size *
@@ -426,7 +426,7 @@ int uffs_GetDeviceFree(uffs_Device *dev)
 /** 
  * get partition total size (bytes)
  */
-int uffs_GetDeviceTotal(uffs_Device *dev)
+unsigned long uffs_GetDeviceTotal(uffs_Device *dev)
 {
 	return (dev->par.end - dev->par.start + 1) *
 				dev->attr->page_data_size *

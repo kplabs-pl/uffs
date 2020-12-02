@@ -312,9 +312,9 @@ UBOOL uffs_IsThisBlockUsed(uffs_Device *dev, uffs_BlockInfo *bc);
 
 int uffs_GetBlockTimeStamp(uffs_Device *dev, uffs_BlockInfo *bc);
 
-int uffs_GetDeviceUsed(uffs_Device *dev);
-int uffs_GetDeviceFree(uffs_Device *dev);
-int uffs_GetDeviceTotal(uffs_Device *dev);
+unsigned long uffs_GetDeviceUsed(uffs_Device *dev);
+unsigned long uffs_GetDeviceFree(uffs_Device *dev);
+unsigned long uffs_GetDeviceTotal(uffs_Device *dev);
 
 URET uffs_LoadMiniHeader(uffs_Device *dev, int block, u16 page, struct uffs_MiniHeaderSt *header);
 
