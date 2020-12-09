@@ -39,6 +39,7 @@ Disadvantage:
   * space inefficency for small files: UFFS use at least one
    'block'(the minial erase unit for NAND flash, e.g. 16K ) for a file.
   * maximum supported blocks: 2^16 = 65535
+  * maximum supported partition size: ULONG_MAX-1 bytes (in reality ULONG_MAX minus the size of one block)
 
 Memory consuming example:
 
