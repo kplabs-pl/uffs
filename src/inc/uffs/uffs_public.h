@@ -310,6 +310,7 @@ unsigned long uffs_GetDeviceUsed(uffs_Device *dev);
 unsigned long uffs_GetDeviceFree(uffs_Device *dev);
 unsigned long uffs_GetDeviceTotal(uffs_Device *dev);
 
+URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, struct uffs_MiniHeaderSt *header);
 URET uffs_LoadMiniHeader(uffs_Device *dev, int block, u16 page, struct uffs_MiniHeaderSt *header);
 
 

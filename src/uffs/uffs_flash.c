@@ -70,7 +70,7 @@ static void TagMakeEcc(struct uffs_TagStoreSt *ts)
 	ts->tag_ecc = uffs_EccMake8(ts, sizeof(struct uffs_TagStoreSt));
 }
 
-static int TagEccCorrect(struct uffs_TagStoreSt *ts)
+int TagEccCorrect(struct uffs_TagStoreSt *ts)
 {
 	u16 ecc_store, ecc_read;
 	int ret;
