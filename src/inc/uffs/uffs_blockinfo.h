@@ -78,8 +78,14 @@ URET uffs_BlockInfoInitCache(uffs_Device *dev, int maxCachedBlocks);
 /** release block info caches */
 URET uffs_BlockInfoReleaseCache(uffs_Device *dev);
 
+/** load a range of page's spares to block info cache */
+URET uffs_BlockInfoLoadPageRange(uffs_Device *dev, uffs_BlockInfo *work, int first_page, int page_after_last);
+
+/** load all page's spares to block info cache */
+URET uffs_BlockInfoLoadAllPages(uffs_Device *dev, uffs_BlockInfo *work);
+
 /** load page spare to block info cache */
-URET uffs_BlockInfoLoad(uffs_Device *dev, uffs_BlockInfo *work, int page);
+URET uffs_BlockInfoLoadPage(uffs_Device *dev, uffs_BlockInfo *work, int page);
 
 /** find block info cache */
 uffs_BlockInfo * uffs_BlockInfoFindInCache(uffs_Device *dev, int block);
@@ -91,6 +97,9 @@ uffs_BlockInfo * uffs_BlockInfoGet(uffs_Device *dev, int block);
 void uffs_BlockInfoPut(uffs_Device *dev, uffs_BlockInfo *p);
 
 /** explicitly expire a block info cache */
+void uffs_BlockInfoExpireAllPages(uffs_Device *dev, uffs_BlockInfo *p);
+
+/** explicitly expire a page in block info cache */
 void uffs_BlockInfoExpire(uffs_Device *dev, uffs_BlockInfo *p, int page);
 
 /** no one hold any block info cache ? safe to release block info caches */

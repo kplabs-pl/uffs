@@ -1425,7 +1425,7 @@ static URET do_TruncateInternalWithBlockRecover(uffs_Object *obj,
 	if (run_opt == eDRY_RUN) {
 		// checking the buffer. this is the main reason why we need the 'dry run' mode.
 		for (page_id = 0; page_id <= max_page_id; page_id++) {
-			buf = uffs_BufFind(dev, parent, serial, page_id);
+			buf = uffs_BufFindPage(dev, parent, serial, page_id);
 			if (buf) {
 				//!< ok, the buffer was loaded before ...
 				if (uffs_BufIsFree(buf) == U_FALSE) {
@@ -1485,7 +1485,7 @@ static URET do_TruncateInternalWithBlockRecover(uffs_Object *obj,
 	// invalidate the rest page buf
 	page_id++;
 	for (; page_id <= max_page_id; page_id++) {
-		buf = uffs_BufFind(dev, parent, serial, page_id);
+		buf = uffs_BufFindPage(dev, parent, serial, page_id);
 		if (buf)
 			uffs_BufMarkEmpty(dev, buf);
 	}
@@ -1499,7 +1499,7 @@ static URET do_TruncateInternalWithBlockRecover(uffs_Object *obj,
 	// Invalidate block info cache for the 'old' block
 	bc = uffs_BlockInfoGet(dev, block);
 	if (bc) {
-		uffs_BlockInfoExpire(dev, bc, UFFS_ALL_PAGES);
+		uffs_BlockInfoExpireAllPages(dev, bc);
 		uffs_BlockInfoPut(dev, bc);
 	}
 
@@ -1593,7 +1593,7 @@ static URET do_TruncateObject(uffs_Object *obj, u32 remain, RunOptionE run_opt)
 				}
 
 				for (page = 0; page < dev->attr->pages_per_block; page++) {
-					buf = uffs_BufFind(dev, fnode->u.file.serial, fdn, page);
+					buf = uffs_BufFindPage(dev, fnode->u.file.serial, fdn, page);
 					if (buf) {
 						//!< ok, the buffer was loaded before ...
 						if (uffs_BufIsFree(buf) == U_FALSE) {
@@ -1656,9 +1656,9 @@ int _CheckObjBufRef(uffs_Object *obj)
 	u16 parent, serial, last_serial;
 
 	// check the DIR or FILE block
-	for (buf = uffs_BufFind(dev, obj->parent, obj->serial, UFFS_ALL_PAGES);
+	for (buf = uffs_BufFind(dev, obj->parent, obj->serial);
 		 buf != NULL;
-		 buf = uffs_BufFindFrom(dev, buf->next, obj->parent, obj->serial, UFFS_ALL_PAGES))
+		 buf = uffs_BufFindFrom(dev, buf->next, obj->parent, obj->serial))
 	{
 		if (buf->ref_count > 0) {
 			// oops ...
@@ -1680,9 +1680,9 @@ int _CheckObjBufRef(uffs_Object *obj)
 			last_serial = GetFdnByOfs(obj, node->u.file.len - 1);
 			for (serial = 1; serial <= last_serial; serial++) {
 
-				for (buf = uffs_BufFind(dev, parent, serial, UFFS_ALL_PAGES);
+				for (buf = uffs_BufFind(dev, parent, serial);
 					 buf != NULL;
-					 buf = uffs_BufFindFrom(dev, buf->next, parent, serial, UFFS_ALL_PAGES))
+					 buf = uffs_BufFindFrom(dev, buf->next, parent, serial))
 				{
 					if (buf->ref_count != 0) {
 						// oops ...
