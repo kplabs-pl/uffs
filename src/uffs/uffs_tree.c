@@ -389,39 +389,40 @@ static URET _BuildValidTreeNode(uffs_Device *dev,
 
 	if (type == UFFS_TYPE_DIR || type == UFFS_TYPE_FILE) {
 		buf = uffs_BufClone(dev, NULL);
-		if (buf == NULL)
+		if (buf == NULL) {
 			return U_FAIL;
-		if (uffs_BlockInfoLoadAllPages(dev, bc) == U_FAIL) {
-			// load block info failed ? check if it's due to new bad block ...
-            if (uffs_TreeProcessPendingBadBlock(dev, node, block) == U_TRUE) {
-                // this is a bad block, processed.
-                uffs_BufFreeClone(dev, buf);
-				return U_SUCC;
-			}
-			else {
-				// not because of bad block ? refuse to continue.
-                uffs_BufFreeClone(dev, buf);
-				return U_FAIL;
-			}
 		}
+
 		page = uffs_FindPageInBlockWithPageId(dev, bc, 0);
 		if (page == UFFS_INVALID_PAGE) {
+			if (uffs_TreeProcessPendingBadBlock(dev, node, block) == U_TRUE) {
+				// this is a bad block, processed.
+				uffs_BufFreeClone(dev, buf);
+				return U_SUCC;
+			}
+
 			uffs_BufFreeClone(dev, buf);
 			uffs_Perror(UFFS_MSG_SERIOUS,
 				"Can't find any valid page for page_id=0 ? invalid block !"
 				"this might be caused by the tag layout change.\n");
 			goto process_invalid_block;
 		}
+
 		page = uffs_FindBestPageInBlock(dev, bc, page);
+		if (page == UFFS_INVALID_PAGE && uffs_TreeProcessPendingBadBlock(dev, node, block) == U_TRUE) {
+			uffs_BufFreeClone(dev, buf);
+			return U_SUCC;
+		}
+
 		ret = uffs_FlashReadPage(dev, block, page, buf, U_FALSE);
 
-        if (uffs_BadBlockAddByFlashResult(dev, block, ret) == UFFS_PENDING_BLK_NONE && UFFS_FLASH_HAVE_ERR(ret)) {
-            uffs_Perror(UFFS_MSG_SERIOUS, "I/O error ?");
-            uffs_BufFreeClone(dev, buf);
-            return U_FAIL;
-        }
+		if (uffs_BadBlockAddByFlashResult(dev, block, ret) == UFFS_PENDING_BLK_NONE && UFFS_FLASH_HAVE_ERR(ret)) {
+			uffs_Perror(UFFS_MSG_SERIOUS, "I/O error ?");
+			uffs_BufFreeClone(dev, buf);
+			return U_FAIL;
+		}
 
-		info = (uffs_FileInfo *) (buf->data);
+		info = (uffs_FileInfo *)(buf->data);
 		data_sum = uffs_MakeSum16(info->name, info->name_len);
 		uffs_BufFreeClone(dev, buf);
 	}

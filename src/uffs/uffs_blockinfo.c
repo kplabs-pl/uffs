@@ -201,6 +201,80 @@ static void _MoveBcToTail(uffs_Device *dev, uffs_BlockInfo *bc)
 }
 
 
+/**
+ * \brief find first free page in pages range in block
+ * \param[in] dev uffs device
+ * \param[in] work given block info to be filled with spares data
+ * \param[in] first_page inclusive start of the range to be searched
+ * \param[in] page_after_last exclusive end of the range to be searched
+ * \param[out] first_free_page output argument for the first free page
+ * 				if all pages are dirty it will contain page number after the last one
+ * \return load result
+ * \retval U_SUCC successful
+ * \retval U_FAIL fail to load
+ * \note work->block must be set before load block info
+ */
+URET uffs_BlockInfoFindFirstFreePage(uffs_Device *dev, uffs_BlockInfo *work, u16 first_page, u16 page_after_last, u16 *first_free_page)
+{
+	int current_page, last_page;
+	uffs_PageSpare *spare;
+	URET ret;
+
+	if (uffs_BlockInfoLoadPage(dev, work, first_page) != U_SUCC) {
+		return U_FAIL;
+	}
+
+	spare = &(work->spares[first_page]);
+	if (!TAG_IS_DIRTY(&(spare->tag))) {
+		*first_free_page = first_page;
+		return U_SUCC;
+	}
+
+	last_page = page_after_last - 1;
+	if (uffs_BlockInfoLoadPage(dev, work, last_page) != U_SUCC) {
+		return U_FAIL;
+	}
+
+	spare = &(work->spares[last_page]);
+	if (TAG_IS_DIRTY(&(spare->tag))) {
+		*first_free_page = page_after_last;
+		return U_SUCC;
+	}
+
+	while (1) {
+		// first_page is always dirty
+		// last_page is always clean
+		// This algorithm divides [first_page, last_page] segment in half until last_page is the first clean page
+		current_page = first_page + (last_page - first_page) / 2;
+		spare = &(work->spares[current_page]);
+		if (spare->expired) {
+			ret = uffs_FlashReadPageTag(dev, work->block, current_page, &(spare->tag));
+
+			uffs_BadBlockAddByFlashResult(dev, work->block, ret);
+
+			if (UFFS_FLASH_HAVE_ERR(ret)) {
+				uffs_Perror(UFFS_MSG_SERIOUS, "load block %d page %d spare fail.", work->block, current_page);
+				return U_FAIL;
+			}
+
+			spare->expired = 0;
+			work->expired_count--;
+		}
+
+		if (TAG_IS_DIRTY(&(spare->tag))) {
+			first_page = current_page;
+		} else {
+			last_page = current_page;
+		}
+
+		if (first_page + 1 >= last_page) {
+			*first_free_page = last_page;
+			return U_SUCC;
+		}
+	}
+}
+
+
 /** 
  * \brief load page's spares data to given block info structure
  *			in given page range
@@ -213,7 +287,7 @@ static void _MoveBcToTail(uffs_Device *dev, uffs_BlockInfo *bc)
  * \retval U_FAIL fail to load
  * \note work->block must be set before load block info
  */
-URET uffs_BlockInfoLoadPageRange(uffs_Device *dev, uffs_BlockInfo *work, int first_page, int page_after_last)
+URET uffs_BlockInfoLoadPageRange(uffs_Device *dev, uffs_BlockInfo *work, u16 first_page, u16 page_after_last)
 {
 	int i, ret, nfailed;
 	uffs_PageSpare *spare;
@@ -275,7 +349,7 @@ URET uffs_BlockInfoLoadAllPages(uffs_Device *dev, uffs_BlockInfo *work)
  * \retval U_FAIL fail to load
  * \note work->block must be set before load block info
  */
-URET uffs_BlockInfoLoadPage(uffs_Device *dev, uffs_BlockInfo *work, int page)
+URET uffs_BlockInfoLoadPage(uffs_Device *dev, uffs_BlockInfo *work, u16 page)
 {
 	int ret;
 	uffs_PageSpare *spare;
@@ -419,7 +493,7 @@ void uffs_BlockInfoExpireAllPages(uffs_Device *dev, uffs_BlockInfo *p)
  * \param[in] p pointer of block info buffer
  * \param[in] page given page number.
  */
-void uffs_BlockInfoExpire(uffs_Device *dev, uffs_BlockInfo *p, int page)
+void uffs_BlockInfoExpire(uffs_Device *dev, uffs_BlockInfo *p, u16 page)
 {
 	uffs_PageSpare *spare;
 
