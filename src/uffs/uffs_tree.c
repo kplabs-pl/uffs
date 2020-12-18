@@ -288,7 +288,7 @@ static URET _BuildValidTreeNode(uffs_Device *dev,
 	int ret;
 
 	// check the first page on the block ...
-	if (uffs_BlockInfoLoad(dev, bc, 0) == U_FAIL) {
+	if (uffs_BlockInfoLoadPage(dev, bc, 0) == U_FAIL) {
         if (uffs_TreeProcessPendingBadBlock(dev, node, bc->block) == U_TRUE) {
             // this is a bad block, processed.
             return U_SUCC;
@@ -343,7 +343,7 @@ static URET _BuildValidTreeNode(uffs_Device *dev,
 			uffs_Perror(UFFS_MSG_SERIOUS, "can't get block info ");
 			return U_FAIL;
 		}
-		uffs_BlockInfoLoad(dev, bc_alt, 0);
+		uffs_BlockInfoLoadPage(dev, bc_alt, 0);
 		if (uffs_IsSrcNewerThanObj (
 				TAG_BLOCK_TS(tag),
 				TAG_BLOCK_TS(GET_TAG(bc_alt, 0))) == U_TRUE) {
@@ -391,7 +391,7 @@ static URET _BuildValidTreeNode(uffs_Device *dev,
 		buf = uffs_BufClone(dev, NULL);
 		if (buf == NULL)
 			return U_FAIL;
-		if (uffs_BlockInfoLoad(dev, bc, UFFS_ALL_PAGES) == U_FAIL) {
+		if (uffs_BlockInfoLoadAllPages(dev, bc) == U_FAIL) {
 			// load block info failed ? check if it's due to new bad block ...
             if (uffs_TreeProcessPendingBadBlock(dev, node, block) == U_TRUE) {
                 // this is a bad block, processed.
@@ -487,7 +487,7 @@ static URET _ScanAndFixUnCleanPage(uffs_Device *dev, uffs_BlockInfo *bc)
 		most case: read one spare.
 	*/
 	for (page = dev->attr->pages_per_block - 1; page > 0; page--) {
-		loadStatus = uffs_BlockInfoLoad(dev, bc, page);
+		loadStatus = uffs_BlockInfoLoadPage(dev, bc, page);
 		tag = GET_TAG(bc, page);
 
 		if (TAG_IS_SEALED(tag)) {

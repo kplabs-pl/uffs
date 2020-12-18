@@ -202,71 +202,103 @@ static void _MoveBcToTail(uffs_Device *dev, uffs_BlockInfo *bc)
 
 
 /** 
- * \brief load page spare data to given block info structure
- *			with given page number
+ * \brief load page's spares data to given block info structure
+ *			in given page range
  * \param[in] dev uffs device
  * \param[in] work given block info to be filled with
- * \param[in] page given page number to be read from,
- *			  if #UFFS_ALL_PAGES is presented, it will read
- *			  all pages, otherwise it will read only one given page.
+ * \param[in] first_page inclusive start of the range to be read from
+ * \param[in] page_after_last exclusive end of the range to be read from
  * \return load result
  * \retval U_SUCC successful
  * \retval U_FAIL fail to load
  * \note work->block must be set before load block info
  */
-URET uffs_BlockInfoLoad(uffs_Device *dev, uffs_BlockInfo *work, int page)
+URET uffs_BlockInfoLoadPageRange(uffs_Device *dev, uffs_BlockInfo *work, int first_page, int page_after_last)
 {
 	int i, ret, nfailed;
 	uffs_PageSpare *spare;
 
-	if (page == UFFS_ALL_PAGES) {
-		nfailed = 0;
-		for (i = 0; i < dev->attr->pages_per_block; i++) {
-			spare = &(work->spares[i]);
-			if (spare->expired == 0)
-				continue;
-
-			ret = uffs_FlashReadPageTag(dev, work->block, i,
-											&(spare->tag));
-
-			uffs_BadBlockAddByFlashResult(dev, work->block, ret);
-
-			if (UFFS_FLASH_HAVE_ERR(ret)) {
-				uffs_Perror(UFFS_MSG_SERIOUS,
-							"load block %d page %d spare fail.",
-							work->block, i);
-				TAG_VALID_BIT(&(spare->tag)) = TAG_INVALID;	
-				nfailed++;	
-			}
-
-			spare->expired = 0;
-			work->expired_count--;
+	nfailed = 0;
+	for (i = first_page; i < page_after_last; i++) {
+		spare = &(work->spares[i]);
+		if (spare->expired == 0) {
+			continue;
 		}
-		if (nfailed > 0)
-			return U_FAIL;
+
+		ret = uffs_FlashReadPageTag(dev, work->block, i, &(spare->tag));
+
+		uffs_BadBlockAddByFlashResult(dev, work->block, ret);
+
+		if (UFFS_FLASH_HAVE_ERR(ret)) {
+			uffs_Perror(UFFS_MSG_SERIOUS, "load block %d page %d spare fail.", work->block, i);
+			TAG_VALID_BIT(&(spare->tag)) = TAG_INVALID;
+			nfailed++;
+		}
+
+		spare->expired = 0;
+		work->expired_count--;
 	}
-	else {
-		if (page < 0 || page >= dev->attr->pages_per_block) {
-			uffs_Perror(UFFS_MSG_SERIOUS, "page out of range !");
+
+	if (nfailed > 0) {
+		return U_FAIL;
+	}
+
+	return U_SUCC;
+}
+
+
+/** 
+ * \brief load all page's spares data to given block info structure
+ * \param[in] dev uffs device
+ * \param[in] work given block info to be filled with
+ * \return load result
+ * \retval U_SUCC successful
+ * \retval U_FAIL fail to load
+ * \note work->block must be set before load block info
+ */
+URET uffs_BlockInfoLoadAllPages(uffs_Device *dev, uffs_BlockInfo *work)
+{
+	return uffs_BlockInfoLoadPageRange(dev, work, 0, dev->attr->pages_per_block);
+}
+
+
+/**
+ * \brief load page spare data to given block info structure
+ *                      with given page number
+ * \param[in] dev uffs device
+ * \param[in] work given block info to be filled with
+ * \param[in] page given page number to be read from,
+ *                        if #UFFS_ALL_PAGES is presented, it will read
+ *                        all pages, otherwise it will read only one given page.
+ * \return load result
+ * \retval U_SUCC successful
+ * \retval U_FAIL fail to load
+ * \note work->block must be set before load block info
+ */
+URET uffs_BlockInfoLoadPage(uffs_Device *dev, uffs_BlockInfo *work, int page)
+{
+	int ret;
+	uffs_PageSpare *spare;
+
+	if (page < 0 || page >= dev->attr->pages_per_block) {
+		uffs_Perror(UFFS_MSG_SERIOUS, "page out of range !");
+		return U_FAIL;
+	}
+	spare = &(work->spares[page]);
+	if (spare->expired) {
+		ret = uffs_FlashReadPageTag(dev, work->block, page, &(spare->tag));
+
+		uffs_BadBlockAddByFlashResult(dev, work->block, ret);
+
+		if (UFFS_FLASH_HAVE_ERR(ret)) {
+			uffs_Perror(UFFS_MSG_SERIOUS, "load block %d page %d spare fail.", work->block, page);
 			return U_FAIL;
 		}
-		spare = &(work->spares[page]);
-		if (spare->expired) {
-			ret = uffs_FlashReadPageTag(dev, work->block, page,
-											&(spare->tag));
 
-            uffs_BadBlockAddByFlashResult(dev, work->block, ret);
-
-			if (UFFS_FLASH_HAVE_ERR(ret)) {
-				uffs_Perror(UFFS_MSG_SERIOUS,
-							"load block %d page %d spare fail.",
-							work->block, page);
-				return U_FAIL;
-			}
-			spare->expired = 0;
-			work->expired_count--;
-		}
+		spare->expired = 0;
+		work->expired_count--;
 	}
+
 	return U_SUCC;
 }
 
@@ -363,33 +395,39 @@ void uffs_BlockInfoPut(uffs_Device *dev, uffs_BlockInfo *p)
 
 
 /** 
- * \brief make the given pages expired in given block info buffer
+ * \brief make all pages expired in given block info buffer
  * \param[in] dev uffs device
  * \param[in] p pointer of block info buffer
- * \param[in] page given page number.
- *	if #UFFS_ALL_PAGES presented, all pages in the block should be made expired.
  */
-void uffs_BlockInfoExpire(uffs_Device *dev, uffs_BlockInfo *p, int page)
+void uffs_BlockInfoExpireAllPages(uffs_Device *dev, uffs_BlockInfo *p)
 {
 	int i;
 	uffs_PageSpare *spare;
 
-	if (page == UFFS_ALL_PAGES) {
-		for (i = 0; i < dev->attr->pages_per_block; i++) {
-			spare = &(p->spares[i]);
-			if (spare->expired == 0) {
-				spare->expired = 1;
-				p->expired_count++;
-			}
+	for (i = 0; i < dev->attr->pages_per_block; i++) {
+		spare = &(p->spares[i]);
+		if (spare->expired == 0) {
+			spare->expired = 1;
+			p->expired_count++;
 		}
 	}
-	else {
-		if (page >= 0 && page < dev->attr->pages_per_block) {
-			spare = &(p->spares[page]);
-			if (spare->expired == 0) {
-				spare->expired = 1;
-				p->expired_count++;
-			}
+}
+
+/** 
+ * \brief make the given page expired in given block info buffer
+ * \param[in] dev uffs device
+ * \param[in] p pointer of block info buffer
+ * \param[in] page given page number.
+ */
+void uffs_BlockInfoExpire(uffs_Device *dev, uffs_BlockInfo *p, int page)
+{
+	uffs_PageSpare *spare;
+
+	if (page >= 0 && page < dev->attr->pages_per_block) {
+		spare = &(p->spares[page]);
+		if (spare->expired == 0) {
+			spare->expired = 1;
+			p->expired_count++;
 		}
 	}
 }
@@ -417,7 +455,7 @@ void uffs_BlockInfoExpireAll(uffs_Device *dev)
 
 	bc = dev->bc.head;
 	while (bc) {
-		uffs_BlockInfoExpire(dev, bc, UFFS_ALL_PAGES);
+		uffs_BlockInfoExpireAllPages(dev, bc);
 		bc = bc->next;
 	}
 	return;
