@@ -376,6 +376,7 @@ int uffs_GetFreePagesCount(uffs_Device *dev, uffs_BlockInfo *bc)
 
 	return count;
 }
+
 /** 
  * \brief Is the block erased ?
  * \param[in] dev uffs device

@@ -92,7 +92,7 @@ static void process_pending_recover(uffs_Device *dev, uffs_PendingBlock *s)
 	UBOOL goodBlockIsDirty;
 	int ret;
 	int region;
-	u8 type;
+	u8 type = UFFS_TYPE_INVALID;
 
 	//recover block
 	bc = uffs_BlockInfoGet(dev, s->block);
