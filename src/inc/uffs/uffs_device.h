@@ -48,6 +48,7 @@
 #include "uffs/uffs_mem.h"
 #include "uffs/uffs_core.h"
 #include "uffs/uffs_flash.h"
+#include "uffs/uffs_serialize.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -190,24 +191,25 @@ struct uffs_PendingListSt {
  * \note one partition corresponding one uffs device.
  */
 struct uffs_DeviceSt {
-	URET (*Init)(uffs_Device *dev);				//!< low level initialisation
-	URET (*Release)(uffs_Device *dev);			//!< low level release
-	void *_private;								//!< private data for device
+	URET (*Init)(uffs_Device *dev);					//!< low level initialisation
+	URET (*Release)(uffs_Device *dev);				//!< low level release
+	void *_private;									//!< private data for device
 
-	struct uffs_StorageAttrSt		*attr;		//!< storage attribute
-	struct uffs_PartitionSt			par;		//!< partition information
-	struct uffs_FlashOpsSt			*ops;		//!< flash operations
-	struct uffs_BlockInfoCacheSt	bc;			//!< block info cache
-	struct uffs_LockSt				lock;		//!< lock data structure
-	struct uffs_PageBufDescSt		buf;		//!< page buffers
-	struct uffs_PageCommInfoSt		com;		//!< common information
-	struct uffs_TreeSt				tree;		//!< tree list of block
-	struct uffs_PendingListSt		pending;	//!< pending block list, to be recover/mark 'bad'/refresh
-	struct uffs_FlashStatSt			st;			//!< statistic (counters)
-	struct uffs_memAllocatorSt		mem;		//!< uffs memory allocator
-	struct uffs_ConfigSt			cfg;		//!< uffs config
-	u32	ref_count;								//!< device reference count
-	int	dev_num;								//!< device number (partition number)	
+	struct uffs_StorageAttrSt		*attr;			//!< storage attribute
+	struct uffs_PartitionSt			par;			//!< partition information
+	struct uffs_FlashOpsSt			*ops;			//!< flash operations
+	struct uffs_BlockInfoCacheSt	bc;				//!< block info cache
+	struct uffs_LockSt				lock;			//!< lock data structure
+	struct uffs_PageBufDescSt		buf;			//!< page buffers
+	struct uffs_PageCommInfoSt		com;			//!< common information
+	struct uffs_TreeSt				tree;			//!< tree list of block
+	struct uffs_PendingListSt		pending;		//!< pending block list, to be recover/mark 'bad'/refresh
+	struct uffs_FlashStatSt			st;				//!< statistic (counters)
+	struct uffs_memAllocatorSt		mem;			//!< uffs memory allocator
+	struct uffs_ConfigSt			cfg;			//!< uffs config
+	struct uffs_SerializeOpsSt		*serial_ops;	//!< serialization operations
+	u32	ref_count;									//!< device reference count
+	int	dev_num;									//!< device number (partition number)
 };
 
 

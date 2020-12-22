@@ -18,6 +18,7 @@ SET (flist
 		uffs_flash.c
 		uffs_version.c
 		uffs_crc.c
+		uffs_serialize.c
 	 )
 	 
 set (srcs)
@@ -49,6 +50,7 @@ SET (flist
 		uffs_flash.h
 		uffs_version.h
 		uffs_crc.h
+		uffs_serialize.h
      )
 	 
 set (hdrs)
