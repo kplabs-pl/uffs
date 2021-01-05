@@ -263,12 +263,6 @@ URET uffs_MakePageValid(uffs_Device *dev, int block, int page, uffs_Tags *tag);
 UBOOL uffs_IsBlockBad(uffs_Device *dev, uffs_BlockInfo *bc);
 
 /********************************** Public defines *****************************/
-/**
- * \def UFFS_ALL_PAGES 
- * \brief UFFS_ALL_PAGES if this value presented, that means the objects are all pages in the block
- */
-#define UFFS_ALL_PAGES (0xffff)
-
 /** 
  * \def UFFS_INVALID_PAGE
  * \brief macro for invalid page number
@@ -297,7 +291,7 @@ URET uffs_PageRecover(uffs_Device *dev,
 					  uffs_Buf *buf);
 int uffs_FindFreePageInBlock(uffs_Device *dev, uffs_BlockInfo *bc);
 u16 uffs_FindBestPageInBlock(uffs_Device *dev, uffs_BlockInfo *bc, u16 page);
-u16 uffs_FindFirstFreePage(uffs_Device *dev, uffs_BlockInfo *bc, u16 pageFrom);
+u16 uffs_FindFirstFreePage(uffs_Device *dev, uffs_BlockInfo *bc, u16 page_from);
 u16 uffs_FindPageInBlockWithPageId(uffs_Device *dev, uffs_BlockInfo *bc, u16 page_id);
 
 u8 uffs_MakeSum8(const void *p, int len);
@@ -316,6 +310,7 @@ unsigned long uffs_GetDeviceUsed(uffs_Device *dev);
 unsigned long uffs_GetDeviceFree(uffs_Device *dev);
 unsigned long uffs_GetDeviceTotal(uffs_Device *dev);
 
+URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, struct uffs_MiniHeaderSt *header);
 URET uffs_LoadMiniHeader(uffs_Device *dev, int block, u16 page, struct uffs_MiniHeaderSt *header);
 
 

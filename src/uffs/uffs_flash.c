@@ -70,7 +70,7 @@ static void TagMakeEcc(struct uffs_TagStoreSt *ts)
 	ts->tag_ecc = uffs_EccMake8(ts, sizeof(struct uffs_TagStoreSt));
 }
 
-static int TagEccCorrect(struct uffs_TagStoreSt *ts)
+int TagEccCorrect(struct uffs_TagStoreSt *ts)
 {
 	u16 ecc_store, ecc_read;
 	int ret;
@@ -782,7 +782,7 @@ URET uffs_FlashMarkBadBlock(uffs_Device *dev, int block)
 
 	bc = uffs_BlockInfoFindInCache(dev, block);
 	if (bc) {
-		uffs_BlockInfoExpire(dev, bc, UFFS_ALL_PAGES);	// expire this block, just in case it's been cached before
+		uffs_BlockInfoExpireAllPages(dev, bc);	// expire this block, just in case it's been cached before
 		uffs_BlockInfoPut(dev, bc);
 	}
 
@@ -859,7 +859,7 @@ int uffs_FlashEraseBlock(uffs_Device *dev, int block)
 
 	bc = uffs_BlockInfoFindInCache(dev, block);
 	if (bc) {
-		uffs_BlockInfoExpire(dev, bc, UFFS_ALL_PAGES);
+		uffs_BlockInfoExpireAllPages(dev, bc);
 		uffs_BlockInfoPut(dev, bc);
 	}
 

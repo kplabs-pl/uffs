@@ -92,7 +92,7 @@ static void process_pending_recover(uffs_Device *dev, uffs_PendingBlock *s)
 	UBOOL goodBlockIsDirty;
 	int ret;
 	int region;
-	u8 type;
+	u8 type = UFFS_TYPE_INVALID;
 
 	//recover block
 	bc = uffs_BlockInfoGet(dev, s->block);
@@ -127,7 +127,7 @@ retry:
 	newBc = uffs_BlockInfoFindInCache(dev, good->u.list.block);
 
 	// read all spares of old block
-	uffs_BlockInfoLoad(dev, bc, UFFS_ALL_PAGES);
+	uffs_BlockInfoLoadAllPages(dev, bc);
 
 	for (i = 0; i < dev->attr->pages_per_block; i++) {
 		page = uffs_FindPageInBlockWithPageId(dev, bc, i);
@@ -242,7 +242,7 @@ retry:
 		uffs_Perror(UFFS_MSG_NOISY,
 					"recovered bad block %d replaced by %d, type %d!",
 					s->block, good->u.list.block, type);
-		uffs_BlockInfoExpire(dev, bc, UFFS_ALL_PAGES);
+		uffs_BlockInfoExpireAllPages(dev, bc);
 
 		//we reuse the 'good' node as bad block node, and process the bad block.
 		good->u.list.block = s->block;

@@ -267,6 +267,9 @@ struct uffs_FlashOpsSt {
 	int (*CheckErasedBlock)(uffs_Device *dev, u32 block);
 };
 
+/** performs tag ecc correction */
+int TagEccCorrect(struct uffs_TagStoreSt *ts);
+
 /** make spare from tag store and ecc */
 void uffs_FlashMakeSpare(uffs_Device *dev, const uffs_TagStore *ts, const u8 *ecc, u8* spare);
 

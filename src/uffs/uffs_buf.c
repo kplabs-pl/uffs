@@ -416,23 +416,47 @@ static uffs_Buf * _FindFreeBuf(uffs_Device *dev)
 }
 
 /** 
+ * find a buffer with any page id in the pool
+ * \param[in] dev uffs device
+ * \param[in] start buf to search from
+ * \param[in] parent parent serial num
+ * \param[in] serial serial num
+ * \return return found buffer, return NULL if buffer not found
+ */
+uffs_Buf *uffs_BufFindFrom(uffs_Device *dev, uffs_Buf *start, u16 parent, u16 serial)
+{
+	uffs_Buf *p = start;
+
+	while (p) {
+		if (p->parent == parent &&
+			p->serial == serial &&
+			p->mark != UFFS_BUF_EMPTY) {
+			//they have match one
+			return p;
+		}
+		p = p->next;
+	}
+
+	return NULL;    //buffer not found
+}
+
+/** 
  * find a buffer in the pool
  * \param[in] dev uffs device
  * \param[in] start buf to search from
  * \param[in] parent parent serial num
  * \param[in] serial serial num
- * \param[in] page_id page_id (if page_id == UFFS_ALL_PAGES then any page would match)
+ * \param[in] page_id page id
  * \return return found buffer, return NULL if buffer not found
  */
-uffs_Buf * uffs_BufFindFrom(uffs_Device *dev, uffs_Buf *start,
-						u16 parent, u16 serial, u16 page_id)
+uffs_Buf * uffs_BufFindFromPage(uffs_Device *dev, uffs_Buf *start, u16 parent, u16 serial, u16 page_id)
 {
 	uffs_Buf *p = start;
 
 	while (p) {
 		if(	p->parent == parent &&
 			p->serial == serial &&
-			(page_id == UFFS_ALL_PAGES || p->page_id == page_id) &&
+			p->page_id == page_id &&
 			p->mark != UFFS_BUF_EMPTY) 
 		{
 			//they have match one
@@ -445,19 +469,33 @@ uffs_Buf * uffs_BufFindFrom(uffs_Device *dev, uffs_Buf *start,
 }
 
 /** 
+ * find a buffer with any page id in the pool
+ * \param[in] dev uffs device
+ * \param[in] parent parent serial num
+ * \param[in] serial serial num
+ * \return return found buffer, return NULL if buffer not found
+ */
+uffs_Buf * uffs_BufFind(uffs_Device *dev, u16 parent, u16 serial)
+{
+	uffs_Buf *p = dev->buf.head;
+
+	return uffs_BufFindFrom(dev, p, parent, serial);
+}
+
+
+/** 
  * find a buffer in the pool
  * \param[in] dev uffs device
  * \param[in] parent parent serial num
  * \param[in] serial serial num
- * \param[in] page_id page_id (if page_id == UFFS_ALL_PAGES then any page would match)
+ * \param[in] page_id page id
  * \return return found buffer, return NULL if buffer not found
  */
-uffs_Buf * uffs_BufFind(uffs_Device *dev,
-						u16 parent, u16 serial, u16 page_id)
+uffs_Buf * uffs_BufFindPage(uffs_Device *dev, u16 parent, u16 serial, u16 page_id)
 {
 	uffs_Buf *p = dev->buf.head;
 
-	return uffs_BufFindFrom(dev, p, parent, serial, page_id);
+	return uffs_BufFindFromPage(dev, p, parent, serial, page_id);
 }
 
 
@@ -619,7 +657,7 @@ static URET uffs_BufFlush_Exist_With_BlockRecover(
 	serial = dev->buf.dirtyGroup[slot].dirty->serial;
 
 retry:
-	uffs_BlockInfoLoad(dev, bc, UFFS_ALL_PAGES);
+	uffs_BlockInfoLoadAllPages(dev, bc);
 
 	flash_op_new = UFFS_FLASH_NO_ERR;
 	flash_op_old = UFFS_FLASH_NO_ERR;
@@ -646,11 +684,11 @@ retry:
 	if (!uffs_Assert(newBc->expired_count == dev->attr->pages_per_block,
 			"We have block cache for erased block ? expired_count = %d, block = %d\n",
 			newBc->expired_count, newBc->block)) {
-		uffs_BlockInfoExpire(dev, newBc, UFFS_ALL_PAGES);
+		uffs_BlockInfoExpireAllPages(dev, newBc);
 	}
 #endif
 
-	uffs_BlockInfoLoad(dev, newBc, UFFS_ALL_PAGES);
+	uffs_BlockInfoLoadAllPages(dev, newBc);
 	timeStamp = uffs_GetNextBlockTimeStamp(uffs_GetBlockTimeStamp(dev, bc));
 
 //	uffs_Perror(UFFS_MSG_NOISY, "Flush buffers with Block Recover, from %d to %d", 
@@ -898,7 +936,7 @@ retry:
 			uffs_BadBlockPendingRemove(dev, bc->block);
 		}
 
-		uffs_BlockInfoExpire(dev, bc, UFFS_ALL_PAGES);  // FIXME: this might not be necessary ...
+		uffs_BlockInfoExpireAllPages(dev, bc);  // FIXME: this might not be necessary ...
 
 		newNode->u.list.block = newBlock;	// just in case the newNode was changed
 		uffs_TreeEraseNode(dev, newNode);
@@ -1123,7 +1161,7 @@ URET _BufFlush(struct uffs_DeviceSt *dev,
 			return U_FAIL;
 		}
 
-		ret = uffs_BlockInfoLoad(dev, bc, UFFS_ALL_PAGES);
+		ret = uffs_BlockInfoLoadAllPages(dev, bc);
 		if (ret == U_SUCC) {
 
 			n = uffs_GetFreePagesCount(dev, bc);
@@ -1370,7 +1408,7 @@ uffs_Buf * uffs_BufGet(struct uffs_DeviceSt *dev,
 	uffs_Buf *p;
 
 	//first, check whether the buffer exist in buf list ?
-	p = uffs_BufFind(dev, parent, serial, page_id);
+	p = uffs_BufFindPage(dev, parent, serial, page_id);
 
 	if (p) {
 		p->ref_count++;
@@ -1468,7 +1506,7 @@ uffs_Buf *uffs_BufGetEx(struct uffs_DeviceSt *dev,
 		return NULL;
 	}
 
-	buf = uffs_BufFind(dev, parent, serial, page_id);
+	buf = uffs_BufFindPage(dev, parent, serial, page_id);
 	if (buf) {
 		buf->ref_count++;
 		return buf;
