@@ -129,7 +129,19 @@ URET uffs_InitDevice(uffs_Device *dev)
 		goto fail;
 	}
 
-	ret = uffs_BuildTree(dev);
+	if (dev->serial_ops != NULL) {
+		ret = uffs_DeserializeState(dev);
+		if (ret != U_SUCC) {
+			uffs_Perror(UFFS_MSG_SERIOUS, "unable to deserialize state, building tree");
+			
+			ret = uffs_BuildTree(dev);
+		} else {
+			uffs_Perror(UFFS_MSG_NORMAL, "deserialized state");
+		}
+	} else {
+		ret = uffs_BuildTree(dev);
+	}
+
 	if (ret != U_SUCC) {
 		uffs_Perror(UFFS_MSG_SERIOUS, "fail to build tree");
 		goto fail;
@@ -146,6 +158,13 @@ fail:
 URET uffs_ReleaseDevice(uffs_Device *dev)
 {
 	URET ret;
+
+	if (dev->serial_ops != NULL) {
+		ret = uffs_SerializeState(dev);
+		if (ret != U_SUCC) {
+			uffs_Perror(UFFS_MSG_SERIOUS, "failed to serialize state");
+		}
+	}
 
 	ret = uffs_BlockInfoReleaseCache(dev);
 	if (ret != U_SUCC) {
