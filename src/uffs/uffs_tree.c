@@ -471,9 +471,10 @@ process_invalid_block:
 }
 
 
-static URET _ScanAndFixUnCleanPage(uffs_Device *dev, uffs_BlockInfo *bc)
+static void _ScanAndFixUnCleanPage(uffs_Device *dev, uffs_BlockInfo *bc)
 {
 	int page;
+	int flash_ret;
 	uffs_Tags *tag;
 	struct uffs_MiniHeaderSt header;
 	URET loadStatus;
@@ -488,10 +489,18 @@ static URET _ScanAndFixUnCleanPage(uffs_Device *dev, uffs_BlockInfo *bc)
 		most case: read one spare.
 	*/
 	for (page = dev->attr->pages_per_block - 1; page > 0; page--) {
-		if (uffs_LoadMiniHeaderAndTag(dev, bc, page, &header) == U_FAIL) {
-            // I/O error ?
-			return U_FAIL;
-        }
+		flash_ret = uffs_LoadMiniHeaderAndTag(dev, bc, page, &header);
+		uffs_BadBlockAddByFlashResult(dev, bc->block, flash_ret);
+		if (UFFS_FLASH_HAVE_ERR(flash_ret)) {
+			if (UFFS_FLASH_IS_FATAL_ERROR(flash_ret)) {
+				uffs_Perror(UFFS_MSG_SERIOUS,
+							"Fatal error %d when reading mini header !"
+							"block %d page %d",
+							flash_ret, bc->block, page);
+			}
+
+			return;
+		}
 
 		loadStatus = uffs_BlockInfoLoadPage(dev, bc, page);
 		tag = GET_TAG(bc, page);
@@ -533,8 +542,6 @@ static URET _ScanAndFixUnCleanPage(uffs_Device *dev, uffs_BlockInfo *bc)
 					bc->block, page);
 		uffs_BadBlockAdd(dev, bc->block, UFFS_PENDING_BLK_RECOVER);
 	}
-
-	return U_SUCC;
 }
 
 
@@ -583,16 +590,10 @@ static URET _BuildTreeStepOne(uffs_Device *dev)
 			uffs_Perror(UFFS_MSG_NORMAL, "found bad block %d", block);
 		}
 		else {
-			if (uffs_LoadMiniHeaderAndTag(dev, bc, 0, &header) == U_FAIL) {
-				uffs_Perror(UFFS_MSG_SERIOUS,
-							"I/O error when reading mini header !"
-							"block %d page %d",
-							block, 0);
-				ret = U_FAIL;
-				break;
-			}
+			flash_ret = uffs_LoadMiniHeaderAndTag(dev, bc, 0, &header);
+			uffs_BadBlockAddByFlashResult(dev, bc->block, flash_ret);
 
-			if (uffs_IsPageErased(dev, bc, 0) == U_TRUE) { //@ read one spare: 0
+			if (!UFFS_FLASH_HAVE_ERR(flash_ret) && uffs_IsPageErased(dev, bc, 0) == U_TRUE) { //@ read one spare: 0
 				// page 0 tag shows it's an erased block, we need to check the mini header status to make sure it is clean.
 
 				flash_ret = UFFS_FLASH_NO_ERR;
@@ -616,13 +617,20 @@ static URET _BuildTreeStepOne(uffs_Device *dev)
 				}
 			}
 			else {
+				if (UFFS_FLASH_IS_FATAL_ERROR(flash_ret)) {
+					uffs_Perror(UFFS_MSG_SERIOUS,
+								"Fatal error %d when reading mini header !"
+								"block %d page %d",
+								flash_ret, block, 0);
+					uffs_BlockInfoPut(dev, bc);
+					return U_FAIL;
+				}
+
 				// make sure it's not a non-recoverable bad block ...
 				if (uffs_TreeProcessPendingBadBlock(dev, node, block) == U_FALSE) {
 
 					// this block have valid data page(s).
-					ret = _ScanAndFixUnCleanPage(dev, bc);
-					if (ret == U_FAIL)
-						break;
+					_ScanAndFixUnCleanPage(dev, bc);
 
 					// _ScanAndFixUnCleanPage() might add new pending block, we need to process it first.
 					if (uffs_TreeProcessPendingBadBlock(dev, node, block) == U_FALSE) {

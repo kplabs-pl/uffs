@@ -72,6 +72,8 @@ extern "C"{
 #define UFFS_FLASH_ECC_FAIL		-2		//!< ECC failed
 #define UFFS_FLASH_BAD_BLK		-3		//!< bad block
 #define UFFS_FLASH_CRC_ERR		-4		//!< CRC failed
+#define UFFS_FLASH_MEM_ERR		-5		//!< Out of memory
+#define UFFS_FLASH_PAGE_ERR		-6		//!< Wrong page
 #define UFFS_FLASH_UNKNOWN_ERR	-100	//!< unkown error?
 
 #define UFFS_FLASH_HAVE_ERR(e)		((e) < 0)
@@ -86,6 +88,9 @@ extern "C"{
 
 #define UFFS_FLASH_IS_NON_RECOVER_BAD_BLOCK(e) \
     ((e) == UFFS_FLASH_ECC_FAIL || (e) == UFFS_FLASH_CRC_ERR)
+
+#define UFFS_FLASH_IS_FATAL_ERROR(e) \
+    ((e) == UFFS_FLASH_IO_ERR || (e) == UFFS_FLASH_MEM_ERR || (e) == UFFS_FLASH_PAGE_ERR || (e) == UFFS_FLASH_UNKNOWN_ERR)
 
 
 /** defines for page info (data length and data sum) */

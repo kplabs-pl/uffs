@@ -340,7 +340,7 @@ static int DumpTag(struct uffs_DeviceSt *dev, int block, int page, uffs_Tags *ta
 	if (!TAG_IS_DIRTY(tag)) {
 		// is a clean page ?
 		ret = uffs_LoadMiniHeader(dev, block, page, &header);
-		if (ret == U_FAIL) {
+		if (UFFS_FLASH_HAVE_ERR(ret)) {
 			dump(dev, "Fail to load mini header from page 0\n");
 		}
 		else {
