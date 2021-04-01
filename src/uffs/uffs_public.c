@@ -43,6 +43,7 @@
 #include "uffs/uffs_os.h"
 #include "uffs/uffs_crc.h"
 #include "uffs/uffs_badblock.h"
+#include "uffs/uffs_flash.h"
 
 #include <string.h>
 
@@ -478,7 +479,7 @@ unsigned long uffs_GetDeviceTotal(uffs_Device *dev)
 /**
  * load mini header and tag from flash
  */
-URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, struct uffs_MiniHeaderSt *header)
+int uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, struct uffs_MiniHeaderSt *header)
 {
 	int ret;
 	u8 *spare_buf;
@@ -488,7 +489,7 @@ URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, s
 
 	if (page < 0 || page >= dev->attr->pages_per_block) {
 		uffs_Perror(UFFS_MSG_SERIOUS, "page out of range !");
-		return U_FAIL;
+		return UFFS_FLASH_PAGE_ERR;
 	}
 
 	spare = &(bc->spares[page]);
@@ -502,7 +503,7 @@ URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, s
 	} else {
 		spare_buf = (u8 *)uffs_PoolGet(&dev->mem.spare_pool);
 		if (spare_buf == NULL) {
-			return U_FAIL;
+			return UFFS_FLASH_MEM_ERR;
 		}
 
 		ret = ops->ReadPage(dev, bc->block, page, (u8 *)header, sizeof(struct uffs_MiniHeaderSt), NULL, spare_buf, dev->mem.spare_data_size);
@@ -511,19 +512,17 @@ URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, s
 		uffs_PoolPut(&dev->mem.spare_pool, spare_buf);
 	}
 
-	uffs_BadBlockAddByFlashResult(dev, bc->block, ret);
-
 	dev->st.page_header_read_count++;
 
 	if (UFFS_FLASH_HAVE_ERR(ret)) {
-		return U_FAIL;
+		return ret;
 	}
 
 	if (TAG_IS_SEALED(tag)) {
 		// do tag ecc correction
 		if (dev->attr->ecc_opt != UFFS_ECC_NONE) {
 			if (TagEccCorrect(&tag->s) < 0) {
-				return U_FAIL;
+				return UFFS_FLASH_BAD_BLK;
 			}
 		}
 	}
@@ -531,13 +530,13 @@ URET uffs_LoadMiniHeaderAndTag(uffs_Device *dev, uffs_BlockInfo *bc, u16 page, s
 	spare->expired = 0;
 	bc->expired_count--;
 
-	return U_SUCC;
+	return UFFS_FLASH_NO_ERR;
 }
 
 /**
  * load mini header from flash
  */
-URET uffs_LoadMiniHeader(uffs_Device *dev, int block, u16 page, struct uffs_MiniHeaderSt *header)
+int uffs_LoadMiniHeader(uffs_Device *dev, int block, u16 page, struct uffs_MiniHeaderSt *header)
 {
 	int ret;
 	struct uffs_FlashOpsSt *ops = dev->ops;
@@ -550,5 +549,5 @@ URET uffs_LoadMiniHeader(uffs_Device *dev, int block, u16 page, struct uffs_Mini
 
 	dev->st.page_header_read_count++;
 
-	return UFFS_FLASH_HAVE_ERR(ret) ? U_FAIL : U_SUCC;
+	return ret;
 }
