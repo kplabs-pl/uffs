@@ -325,7 +325,7 @@ int uffs_DirEntryBufPutAll(uffs_Device *dev);
 /************************************************************************/
 /*  init functions                                                                     */
 /************************************************************************/
-URET uffs_InitDevice(uffs_Device *dev);
+uffs_DeviceMountStatus uffs_InitDevice(uffs_Device *dev);
 URET uffs_ReleaseDevice(uffs_Device *dev);
 
 URET uffs_InitFileSystemObjects(void);

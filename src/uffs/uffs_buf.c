@@ -1069,7 +1069,7 @@ URET
 			goto ext;
 		}
 		else if (x == UFFS_FLASH_BAD_BLK) {
-			uffs_Perror(UFFS_MSG_NORMAL, "Bad blcok found, start block recover ...");
+			uffs_Perror(UFFS_MSG_NORMAL, "Bad block found, start block recover ...");
 
 			ret = uffs_BufFlush_Exist_With_BlockRecover(dev, slot, node, bc, U_TRUE);
 			goto ext;

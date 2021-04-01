@@ -154,19 +154,20 @@ static uffs_MountTable * uffs_GetMountTableByMountPoint(const char *mount, uffs_
  * \note use uffs_RegisterMountTable() register mount entry before you can mount it.
  *       mount point should ended with '/', e.g. '/sys/'
  */
-int uffs_Mount(const char *mount)
+uffs_DeviceMountStatus uffs_Mount(const char *mount)
 {
+	uffs_DeviceMountStatus result = {U_FAIL, U_FAIL};
 	uffs_MountTable *mtb;
 
 	if (uffs_GetMountTableByMountPoint(mount, m_head) != NULL) {
 		uffs_Perror(UFFS_MSG_NOISY,	"'%s' already mounted", mount);
-		return -1; // already mounted ?
+		return result; // already mounted ?
 	}
 	
 	mtb = uffs_GetMountTableByMountPoint(mount, m_free_head);
 	if (mtb == NULL) {
 		uffs_Perror(UFFS_MSG_NOISY,	"'%s' not registered", mount);
-		return -1;	// not registered ?
+		return result;	// not registered ?
 	}
 
 	uffs_Perror(UFFS_MSG_NOISY,
@@ -186,15 +187,16 @@ int uffs_Mount(const char *mount)
 		uffs_Perror(UFFS_MSG_SERIOUS,
 					"init device for mount point %s fail",
 					mtb->mount);
-		return -1;
+		return result;
 	}
 
 	uffs_Perror(UFFS_MSG_NOISY, "mount partiton: %d,%d",
 		mtb->dev->par.start, mtb->dev->par.end);
 
-	if (uffs_InitDevice(mtb->dev) != U_SUCC) {
+	result = uffs_InitDevice(mtb->dev);
+	if (result.mount_status != U_SUCC) {
 		uffs_Perror(UFFS_MSG_SERIOUS, "init device fail !");
-		return -1;
+		return result;
 	}
 
 	/* now break it from unmounted list */
@@ -212,7 +214,7 @@ int uffs_Mount(const char *mount)
 		m_head->prev = mtb;
 	m_head = mtb;
 
-	return 0;
+	return result;
 }
 
 /**
