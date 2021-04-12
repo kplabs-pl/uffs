@@ -78,24 +78,25 @@ static URET uffs_InitDeviceConfig(uffs_Device *dev)
 	return U_SUCC;
 }
 
-URET uffs_InitDevice(uffs_Device *dev)
+uffs_DeviceMountStatus uffs_InitDevice(uffs_Device *dev)
 {
+	uffs_DeviceMountStatus result = {U_FAIL, U_FAIL};
 	URET ret;
 
     // check pages_per_block is within valid range
     if (dev->attr->pages_per_block > UFFS_MAX_PAGES_PER_BLOCK) {
         uffs_Perror(UFFS_MSG_DEAD, "page_per_block should not exceed %d !", UFFS_MAX_PAGES_PER_BLOCK);
-        return U_FAIL;
+        return result;
     }
 
 	ret = uffs_InitDeviceConfig(dev);
 	if (ret != U_SUCC)
-		return U_FAIL;
+		return result;
 
 	if (dev->mem.init) {
 		if (dev->mem.init(dev) != U_SUCC) {
 			uffs_Perror(UFFS_MSG_SERIOUS, "Init memory allocator fail.");
-			return U_FAIL;
+			return result;
 		}
 	}
 
@@ -131,6 +132,7 @@ URET uffs_InitDevice(uffs_Device *dev)
 
 	if (dev->serial_ops != NULL) {
 		ret = uffs_DeserializeState(dev);
+		result.device_state_serialization_status = ret;
 		if (ret != U_SUCC) {
 			uffs_Perror(UFFS_MSG_SERIOUS, "unable to deserialize state, building tree");
 			
@@ -147,12 +149,13 @@ URET uffs_InitDevice(uffs_Device *dev)
 		goto fail;
 	}
 
-	return U_SUCC;
+	result.mount_status = ret;
+	return result;
 
 fail:
 	uffs_DeviceReleaseLock(dev);
 
-	return U_FAIL;
+	return result;
 }
 
 URET uffs_ReleaseDevice(uffs_Device *dev)

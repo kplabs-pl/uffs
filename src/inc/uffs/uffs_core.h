@@ -49,6 +49,14 @@ typedef struct uffs_TagStoreSt      uffs_TagStore;  //!< UFFS page tags physical
 
 typedef struct uffs_BufSt uffs_Buf;
 
+typedef struct uffs_DeviceMountStatusSt
+{
+    /** Overall device mount status */
+    int mount_status;
+
+    /** Indicates whether partition state has been successfully deserialized */
+    int device_state_serialization_status;
+} uffs_DeviceMountStatus;
 
 #ifdef __cplusplus
 }

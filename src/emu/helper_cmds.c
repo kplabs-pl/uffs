@@ -550,7 +550,7 @@ static int cmd_mount(int argc, char *argv[])
 	}
 	else {
 		mount = argv[1];
-		if (uffs_Mount(mount) < 0) {
+		if (uffs_Mount(mount).mount_status < 0) {
 			MSGLN("Can't mount %s", mount);
 			return -1;
 		}

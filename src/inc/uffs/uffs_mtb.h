@@ -64,7 +64,7 @@ int uffs_RegisterMountTable(uffs_MountTable *mtb);
 int uffs_UnRegisterMountTable(uffs_MountTable *mtb);
 
 /** mount partition */
-int uffs_Mount(const char *mount);
+uffs_DeviceMountStatus uffs_Mount(const char *mount);
 
 /** unmount parttion */
 int uffs_UnMount(const char *mount);
